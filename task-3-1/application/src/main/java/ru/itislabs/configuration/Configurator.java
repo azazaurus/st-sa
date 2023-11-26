@@ -5,9 +5,11 @@ import ru.itislabs.hash.*;
 import ru.itislabs.signatures.*;
 
 import java.io.*;
+import java.nio.file.*;
 import java.security.*;
 import java.security.spec.*;
 import java.util.*;
+import java.util.zip.*;
 
 public final class Configurator {
 	private static final String configurationFileName = "application.properties";
@@ -24,10 +26,14 @@ public final class Configurator {
 	}
 
 	public static BlockchainService initializeBlockchainService(Properties configuration) {
+		var blockchainFileName = configuration.getProperty("blockchain.filename");
+
 		var hashService = new DefaultHashService(Configurator::initializeCryptographicHashFunction);
 		var signatureService = initializeDefaultSignatureService(configuration);
 		return new BlockchainService(
-			new Blockchain(),
+			new BlockchainRepository(
+				() -> initializeBlockchainInputStream(blockchainFileName),
+				() -> initializeBlockchainOutputStream(blockchainFileName)),
 			new BlockDraftFactory(hashService, signatureService),
 			hashService,
 			signatureService);
@@ -87,6 +93,22 @@ public final class Configurator {
 		try {
 			return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(decodedPrivateKey));
 		} catch (InvalidKeySpecException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static InputStream initializeBlockchainInputStream(String fileName) {
+		try {
+			return Files.newInputStream(Path.of(fileName), StandardOpenOption.READ);
+		} catch (IOException e) {
+			return InputStream.nullInputStream();
+		}
+	}
+
+	private static OutputStream initializeBlockchainOutputStream(String fileName) {
+		try {
+			return Files.newOutputStream(Path.of(fileName), StandardOpenOption.CREATE);
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}

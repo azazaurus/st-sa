@@ -9,17 +9,19 @@ import java.util.*;
 public class BlockchainService {
 	public static final Charset encodingCharset = StandardCharsets.UTF_16;
 
-	private final Blockchain blockchain;
+	private final BlockchainRepository blockchainRepository;
 	private final BlockDraftFactory blockDraftFactory;
 	private final HashService hashService;
 	private final SignatureService signatureService;
 
+	private Blockchain blockchain;
+
 	public BlockchainService(
-			Blockchain blockchain,
+			BlockchainRepository blockchainRepository,
 			BlockDraftFactory blockDraftFactory,
 			HashService hashService,
 			SignatureService signatureService) {
-		this.blockchain = blockchain;
+		this.blockchainRepository = blockchainRepository;
 		this.blockDraftFactory = blockDraftFactory;
 		this.hashService = hashService;
 		this.signatureService = signatureService;
@@ -27,21 +29,29 @@ public class BlockchainService {
 
 	public Block appendBlock(String data) {
 		var dataBytes = data.getBytes(encodingCharset);
-		var lastBlock = blockchain.getLastBlock();
+		var lastBlock = getBlockchain().getLastBlock();
 		var block = blockDraftFactory.create(dataBytes, lastBlock);
-		return blockchain.appendBlock(block);
+		var newBlock = getBlockchain().appendBlock(block);
+
+		blockchainRepository.save(blockchain);
+
+		return newBlock;
 	}
 
 	public Block appendArbitraryBlock(BlockDraft block) {
-		return blockchain.appendBlock(block);
+		var newBlock = getBlockchain().appendBlock(block);
+
+		blockchainRepository.save(blockchain);
+
+		return newBlock;
 	}
 
 	public Block readBlock(int id) {
-		return blockchain.getBlock(id);
+		return getBlockchain().getBlock(id);
 	}
 
 	public boolean verifyBlock(int id) {
-		var blockToVerify = blockchain.getBlock(id);
+		var blockToVerify = getBlockchain().getBlock(id);
 		var blockHash = hashService.calculateCryptographicHash(blockToVerify);
 		var isBlockHashCorrect = signatureService.verify(blockHash, blockToVerify.getHashSignature());
 		if (!isBlockHashCorrect)
@@ -53,7 +63,7 @@ public class BlockchainService {
 		if (!isBlockDataCorrect)
 			return false;
 
-		var previousBlock = blockchain.getPreviousBlock(id);
+		var previousBlock = getBlockchain().getPreviousBlock(id);
 		if (previousBlock != null) {
 			if (blockToVerify.getPreviousBlockHash() == null
 					|| blockToVerify.getPreviousBlockHash().length == 0)
@@ -67,7 +77,7 @@ public class BlockchainService {
 	}
 
 	public BlockchainVerificationResult verifyAll() {
-		var allIds = blockchain.getAllIds();
+		var allIds = getBlockchain().getAllIds();
 		var correctIds = new ArrayList<Integer>(allIds.length);
 		var incorrectIds = new ArrayList<Integer>();
 		for (var id : allIds) {
@@ -79,5 +89,19 @@ public class BlockchainService {
 		}
 
 		return new BlockchainVerificationResult(correctIds, incorrectIds);
+	}
+
+	public void reloadBlockchain() {
+		blockchain = blockchainRepository.read();
+	}
+	
+	private Blockchain getBlockchain() {
+		if (blockchain == null) {
+			blockchain = blockchainRepository.read();
+			if (blockchain == null)
+				blockchain = new Blockchain();
+		}
+
+		return blockchain;
 	}
 }
