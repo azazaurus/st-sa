@@ -65,4 +65,19 @@ public class BlockchainService {
 
 		return true;
 	}
+
+	public BlockchainVerificationResult verifyAll() {
+		var allIds = blockchain.getAllIds();
+		var correctIds = new ArrayList<Integer>(allIds.length);
+		var incorrectIds = new ArrayList<Integer>();
+		for (var id : allIds) {
+			var verificationResult = verifyBlock(id);
+			if (verificationResult)
+				correctIds.add(id);
+			else
+				incorrectIds.add(id);
+		}
+
+		return new BlockchainVerificationResult(correctIds, incorrectIds);
+	}
 }

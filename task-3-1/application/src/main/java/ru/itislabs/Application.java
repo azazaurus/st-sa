@@ -12,7 +12,8 @@ public class Application {
 	private static final String usageHelpString = "Available commands:" + System.lineSeparator()
 		+ "add <data string>" + System.lineSeparator()
 		+ "read <block ID>" + System.lineSeparator()
-		+ "verify <block ID>" + System.lineSeparator();
+		+ "verify <block ID>" + System.lineSeparator()
+		+ "verify-all" + System.lineSeparator();
 
 	private final Base64.Encoder base64Encoder;
 	private final BlockchainService blockchainService;
@@ -39,6 +40,9 @@ public class Application {
 					break;
 				case "verify":
 					handleVerifyCommand(commandArguments);
+					break;
+				case "verify-all":
+					handleVerifyAllCommand(commandArguments);
 					break;
 				case "exit":
 				case "quit":
@@ -103,6 +107,25 @@ public class Application {
 			verificationResult
 				? "Block is correct"
 				: "Block is not correct");
+	}
+
+	private void handleVerifyAllCommand(String[] commandArguments) {
+		if (commandArguments.length > 1) {
+			System.out.println("Usage: verify-all");
+			return;
+		}
+
+		var verificationResult = blockchainService.verifyAll();
+		if (verificationResult.correctBlockIds.size() + verificationResult.incorrectBlockIds.size() == 0)
+			System.out.println("No blocks are found");
+		else if (verificationResult.incorrectBlockIds.isEmpty())
+			System.out.println("All blocks are correct");
+		else {
+			var incorrectBlockIds = verificationResult.incorrectBlockIds.stream()
+				.map(Object::toString)
+				.toArray(String[]::new);
+			System.out.println("Incorrect block IDs: " + String.join(", ", incorrectBlockIds));
+		}
 	}
 
 	private void handleUnknownCommand(String[] commandArguments) {
