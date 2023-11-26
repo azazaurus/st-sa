@@ -9,10 +9,12 @@ public final class BlockchainServiceFactory {
 	}
 
 	public static BlockchainService create() {
+		var hashService = DefaultHashServiceFactory.create();
+		var signatureService = DefaultSignatureServiceFactory.create();
 		return new BlockchainService(
 			new Blockchain(),
-			new BlockDraftFactory(
-				DefaultHashServiceFactory.create(),
-				DefaultSignatureServiceFactory.create()));
+			new BlockDraftFactory(hashService, signatureService),
+			hashService,
+			signatureService);
 	}
 }

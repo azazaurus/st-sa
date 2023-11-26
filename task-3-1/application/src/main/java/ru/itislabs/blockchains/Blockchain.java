@@ -13,6 +13,10 @@ public class Blockchain {
 		this.chain = new ArrayList<>(chain);
 	}
 
+	public Block getPreviousBlock(int id) {
+		return id > 0 && id < chain.size() ? chain.get(id - 1) : null;
+	}
+
 	public Block getBlock(int id) {
 		return id >= 0 && id < chain.size() ? chain.get(id) : null;
 	}
