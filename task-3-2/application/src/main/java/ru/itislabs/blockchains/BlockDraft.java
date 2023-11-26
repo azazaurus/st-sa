@@ -6,10 +6,10 @@ public class BlockDraft {
 	private final byte[] data;
 	private final byte[] dataSignature;
 	private final byte[] hashSignature;
-	private final String timestamp;
+	private final byte[] timestamp;
 	private final byte[] previousBlockHash;
 
-	public BlockDraft(byte[] data, byte[] dataSignature, byte[] hashSignature, String timestamp) {
+	public BlockDraft(byte[] data, byte[] dataSignature, byte[] hashSignature, byte[] timestamp) {
 		this.data = data;
 		this.dataSignature = dataSignature;
 		this.hashSignature = hashSignature;
@@ -17,7 +17,7 @@ public class BlockDraft {
 		this.previousBlockHash = null;
 	}
 
-	public BlockDraft(byte[] data, byte[] dataSignature, byte[] hashSignature, String timestamp, byte[] previousBlockHash) {
+	public BlockDraft(byte[] data, byte[] dataSignature, byte[] hashSignature, byte[] timestamp, byte[] previousBlockHash) {
 		this.data = data;
 		this.dataSignature = dataSignature;
 		this.hashSignature = hashSignature;
@@ -25,7 +25,7 @@ public class BlockDraft {
 		this.previousBlockHash = previousBlockHash;
 	}
 
-	public String getTimestamp() {
+	public byte[] getTimestamp() {
 		return timestamp;
 	}
 

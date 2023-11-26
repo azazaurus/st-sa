@@ -11,7 +11,8 @@ message BlockDto {
   bytes data = 2;
   bytes dataSignature = 3;
   bytes hashSignature = 4;
-  optional bytes previousBlockHash = 5;
+  bytes timestamp = 5;
+  optional bytes previousBlockHash = 6;
 }
 
 message BlockchainDto {

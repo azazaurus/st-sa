@@ -29,10 +29,8 @@ public class RequestUtil {
             conn.disconnect();
 
             json = new JSONObject(builder.toString());
-            System.out.println(json.toString());
-
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return json;
     }

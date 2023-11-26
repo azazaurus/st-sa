@@ -54,8 +54,12 @@ public class BlockchainService {
 	public boolean verifyBlock(int id) {
 		var blockToVerify = getBlockchain().getBlock(id);
 		var blockHash = hashService.calculateCryptographicHash(blockToVerify);
-		var concatenatedTimestampAndHashBytes = ByteArrayUtil.concat(blockToVerify.getTimestamp().getBytes(), blockHash);
-		var isBlockHashSignatureCorrect = signatureService.verify(concatenatedTimestampAndHashBytes, blockToVerify.getHashSignature());
+		var concatenatedTimestampAndHashBytes = ByteArrayUtil.concat(
+			blockToVerify.getTimestamp(),
+			blockHash);
+		var isBlockHashSignatureCorrect = signatureService.verifyWithArbiter(
+			concatenatedTimestampAndHashBytes,
+			blockToVerify.getHashSignature());
 		if (!isBlockHashSignatureCorrect)
 			return false;
 

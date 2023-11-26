@@ -5,11 +5,11 @@ import ru.itislabs.hash.*;
 import ru.itislabs.signatures.*;
 
 import java.io.*;
+import java.net.*;
 import java.nio.file.*;
 import java.security.*;
 import java.security.spec.*;
 import java.util.*;
-import java.util.zip.*;
 
 public final class Configurator {
 	private static final String configurationFileName = "application.properties";
@@ -52,15 +52,18 @@ public final class Configurator {
 		var base64Decoder = Base64.getDecoder();
 		var decodedPublicKey = base64Decoder.decode(configuration.getProperty("keys.public.x509"));
 		var decodedPrivateKey = base64Decoder.decode(configuration.getProperty("keys.private.pkcs8"));
+		var arbiterPublicKeyUrl = base64Decoder.decode(configuration.getProperty("keys.private.pkcs8"));
 
 		var keyFactory = createKeyFactory();
 		var publicKey = getPublicKey(keyFactory, decodedPublicKey);
 		var privateKey = getPrivateKey(keyFactory, decodedPrivateKey);
+		var arbiterPublicKey = getArbiterPublicKey(configuration, base64Decoder, keyFactory);
 
 		return new DefaultSignatureService(
 			Configurator::initializeSignature,
 			() -> publicKey,
-			() -> privateKey);
+			() -> privateKey,
+			() -> arbiterPublicKey);
 	}
 
 	private static Signature initializeSignature() {
@@ -93,6 +96,25 @@ public final class Configurator {
 		try {
 			return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(decodedPrivateKey));
 		} catch (InvalidKeySpecException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static PublicKey getArbiterPublicKey(
+			Properties configuration,
+			Base64.Decoder base64Decoder,
+			KeyFactory keyFactory) {
+		var arbiterPublicKeyUrl = configuration.getProperty("arbitrary.urls.publickey");
+		try {
+			var arbiterPublicKeyConnection = new URL(arbiterPublicKeyUrl).openConnection();
+			byte[] base64EncodedPublicKey;
+			try (var arbiterPublicKeyStream = arbiterPublicKeyConnection.getInputStream()) {
+				base64EncodedPublicKey = arbiterPublicKeyStream.readAllBytes();
+			}
+
+			var decodedPublicKey = base64Decoder.decode(base64EncodedPublicKey);
+			return keyFactory.generatePublic(new X509EncodedKeySpec(decodedPublicKey));
+		} catch (IOException | InvalidKeySpecException e) {
 			throw new RuntimeException(e);
 		}
 	}

@@ -59,6 +59,7 @@ public class BlockchainRepository {
 				blockDto.getData().toByteArray(),
 				blockDto.getDataSignature().toByteArray(),
 				blockDto.getHashSignature().toByteArray(),
+				blockDto.getTimestamp().toByteArray(),
 				blockDto.hasPreviousBlockHash()
 					? blockDto.getPreviousBlockHash().toByteArray()
 					: null);
@@ -77,7 +78,8 @@ public class BlockchainRepository {
 				.setId(blockId)
 				.setData(ByteString.copyFrom(block.getData()))
 				.setDataSignature(ByteString.copyFrom(block.getDataSignature()))
-				.setHashSignature(ByteString.copyFrom(block.getHashSignature()));
+				.setHashSignature(ByteString.copyFrom(block.getHashSignature()))
+				.setTimestamp(ByteString.copyFrom(block.getTimestamp()));
 			if (block.getPreviousBlockHash() != null)
 				blockDtoBuilder.setPreviousBlockHash(ByteString.copyFrom(block.getPreviousBlockHash()));
 

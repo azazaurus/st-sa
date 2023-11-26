@@ -7,10 +7,10 @@ public class Block {
 	private final byte[] data;
 	private final byte[] dataSignature;
 	private final byte[] hashSignature;
-	private final String timestamp;
+	private final byte[] timestamp;
 	private final byte[] previousBlockHash;
 
-	public Block(int id, byte[] data, byte[] dataSignature, byte[] hashSignature, String timestamp) {
+	public Block(int id, byte[] data, byte[] dataSignature, byte[] hashSignature, byte[] timestamp) {
 		this.id = id;
 		this.data = data;
 		this.dataSignature = dataSignature;
@@ -19,7 +19,7 @@ public class Block {
 		this.previousBlockHash = null;
 	}
 
-	public Block(int id, byte[] data, byte[] dataSignature, byte[] hashSignature, String timestamp, byte[] previousBlockHash) {
+	public Block(int id, byte[] data, byte[] dataSignature, byte[] hashSignature, byte[] timestamp, byte[] previousBlockHash) {
 		this.id = id;
 		this.data = data;
 		this.dataSignature = dataSignature;
@@ -44,7 +44,7 @@ public class Block {
 		return hashSignature;
 	}
 
-	public String getTimestamp() {
+	public byte[] getTimestamp() {
 		return timestamp;
 	}
 
