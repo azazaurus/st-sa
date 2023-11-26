@@ -17,6 +17,11 @@ public class Blockchain {
 		return id >= 0 && id < chain.size() ? chain.get(id) : null;
 	}
 
+	public Block getLastBlock() {
+		var chainSize = chain.size();
+		return chainSize > 0 ? chain.get(chainSize - 1) : null;
+	}
+
 	public Block appendBlock(BlockDraft block) {
 		var newBlock = createBlock(chain.size(), block);
 		chain.add(newBlock);

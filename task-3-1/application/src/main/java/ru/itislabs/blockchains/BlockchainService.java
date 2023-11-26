@@ -1,14 +1,23 @@
 package ru.itislabs.blockchains;
 
-public class BlockchainService {
-	private final Blockchain blockchain;
+import java.nio.charset.*;
 
-	public BlockchainService(Blockchain blockchain) {
+public class BlockchainService {
+	public static final Charset encodingCharset = StandardCharsets.UTF_16;
+
+	private final Blockchain blockchain;
+	private final BlockDraftFactory blockDraftFactory;
+
+	public BlockchainService(Blockchain blockchain, BlockDraftFactory blockDraftFactory) {
 		this.blockchain = blockchain;
+		this.blockDraftFactory = blockDraftFactory;
 	}
 
 	public Block appendBlock(String data) {
-		throw new UnsupportedOperationException();
+		var dataBytes = data.getBytes(encodingCharset);
+		var lastBlock = blockchain.getLastBlock();
+		var block = blockDraftFactory.create(dataBytes, lastBlock);
+		return blockchain.appendBlock(block);
 	}
 
 	public Block appendArbitraryBlock(BlockDraft block) {
