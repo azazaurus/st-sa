@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package ru.itislabs.blockchains.dto;
+
+option java_multiple_files = true;
+option java_package = "ru.itislabs.blockchains.dto";
+option java_outer_classname = "BlockchainDtos";
+
+message BlockDto {
+  int32 id = 1;
+  bytes data = 2;
+  bytes dataSignature = 3;
+  bytes hashSignature = 4;
+  optional bytes previousBlockHash = 5;
+}
+
+message BlockchainDto {
+  repeated BlockDto chain = 1;
+}
