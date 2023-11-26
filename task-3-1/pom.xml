@@ -11,6 +11,7 @@
 
 	<modules>
 		<module>application</module>
+		<module>unit-tests</module>
 	</modules>
 
 	<properties>
