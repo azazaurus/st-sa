@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run application" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ru.itislabs.Application" />
+    <module name="application" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/work" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="ru.itislabs.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Maven.BeforeRunTask" enabled="true" file="$PROJECT_DIR$/pom.xml" goal="package" />
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
