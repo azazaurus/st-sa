@@ -1,30 +1,23 @@
 package ru.itislabs.blockchains;
 
-public class Block {
-	private final int id;
+public class BlockDraft {
 	private final byte[] data;
 	private final byte[] dataSignature;
 	private final byte[] hashSignature;
 	private final byte[] previousBlockHash;
 
-	public Block(int id, byte[] data, byte[] dataSignature, byte[] hashSignature) {
-		this.id = id;
+	public BlockDraft(byte[] data, byte[] dataSignature, byte[] hashSignature) {
 		this.data = data;
 		this.dataSignature = dataSignature;
 		this.hashSignature = hashSignature;
 		this.previousBlockHash = null;
 	}
 
-	public Block(int id, byte[] data, byte[] dataSignature, byte[] hashSignature, byte[] previousBlockHash) {
-		this.id = id;
+	public BlockDraft(byte[] data, byte[] dataSignature, byte[] hashSignature, byte[] previousBlockHash) {
 		this.data = data;
 		this.dataSignature = dataSignature;
 		this.hashSignature = hashSignature;
 		this.previousBlockHash = previousBlockHash;
-	}
-
-	public int getId() {
-		return id;
 	}
 
 	public byte[] getData() {

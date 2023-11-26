@@ -1,16 +1,22 @@
 package ru.itislabs.blockchains;
 
 public class BlockchainService {
-	public int appendBlock(String data) {
+	private final Blockchain blockchain;
+
+	public BlockchainService(Blockchain blockchain) {
+		this.blockchain = blockchain;
+	}
+
+	public Block appendBlock(String data) {
 		throw new UnsupportedOperationException();
 	}
 
-	public int appendArbitraryBlock(Block block) {
-		throw new UnsupportedOperationException();
+	public Block appendArbitraryBlock(BlockDraft block) {
+		return blockchain.appendBlock(block);
 	}
 
 	public Block readBlock(int id) {
-		throw new UnsupportedOperationException();
+		return blockchain.getBlock(id);
 	}
 
 	public boolean verifyBlock(int id) {
