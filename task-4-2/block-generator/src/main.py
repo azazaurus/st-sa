@@ -13,36 +13,41 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
-author_name = "Test author"
-
+public_key_filename = "public.key"
 private_key_filename = "private.key"
 training_data_filename = "test_data_100.csv"
 
 blockchain_url = "http://itislabs.ru/nbc/chain"
 new_block_url = "http://itislabs.ru/nbc/newblock"
-new_author_url = "http://itislabs.ru/nbc/autor"
 
 
-def get_key_pair(private_key_filename):
+def get_key_pair(public_key_filename, private_key_filename):
 	new_key = True
 	try:
 		with open(private_key_filename, "rb") as private_key_file:
 			encoded_private_key = private_key_file.read()
-			private_key = serialization.load_pem_private_key(encoded_private_key, password = None)
+			private_key = serialization.load_der_private_key(encoded_private_key, password = None)
 		new_key = False
 	except:
 		private_key = generate_key_pair()
 
+	public_key = private_key.public_key()
+
 	if new_key:
+		with open(public_key_filename, "wb") as public_key_file:
+			encoded_public_key = public_key.public_bytes(
+				serialization.Encoding.DER,
+				serialization.PublicFormat.SubjectPublicKeyInfo)
+			public_key_file.write(encoded_public_key)
 		with open(private_key_filename, "wb") as private_key_file:
 			encoded_private_key = private_key.private_bytes(
-				serialization.Encoding.PEM,
+				serialization.Encoding.DER,
 				serialization.PrivateFormat.PKCS8,
 				serialization.NoEncryption())
 			private_key_file.write(encoded_private_key)
 		print("Generated new private key")
 
-	return private_key.public_key(), private_key
+	return public_key, private_key
 
 
 def generate_key_pair():
@@ -163,32 +168,6 @@ def send_new_block(block):
 	return True
 
 
-def reveal_identity(public_key, private_key, name):
-	signature = sign_bytes(name.encode("utf-8"), private_key)
-
-	author = {
-		"autor": name,
-		"sign": bytes.hex(signature),
-		"publickey": bytes.hex(
-			public_key.public_bytes(
-				serialization.Encoding.DER,
-				serialization.PublicFormat.SubjectPublicKeyInfo))
-	}
-
-	headers = {"Content-Type": "application/json; charset=UTF-8"}
-	response = requests.post(new_author_url, headers = headers, data = to_json(author))
-	if not response.ok:
-		print(f"Status code {response.status_code}: {response.text}")
-		return False
-
-	result = json.loads(response.text)
-	if result["status"] != 0:
-		print(f"Error: {response.text}")
-		return False
-
-	return True
-
-
 def to_str_rounded(num):
 	return "{:.12f}".format(num).rstrip('0').rstrip('.')
 
@@ -198,7 +177,7 @@ def to_json(data):
 
 
 def main():
-	public_key, private_key = get_key_pair(private_key_filename)
+	public_key, private_key = get_key_pair(public_key_filename, private_key_filename)
 
 	df = pd.read_csv(training_data_filename, delimiter = ';', header = None)
 	weights, error = train_model(df)
@@ -211,14 +190,6 @@ def main():
 		return
 
 	print(f"Block with hash {new_block_hash} has been added")
-
-	identity_revealed = reveal_identity(public_key, private_key, author_name)
-	if identity_revealed:
-		public_key_hex = bytes.hex(
-			public_key.public_bytes(
-				serialization.Encoding.DER,
-				serialization.PublicFormat.SubjectPublicKeyInfo))
-		print(f"Author with public key {public_key_hex} has been revealed with name \"{author_name}\"")
 
 
 if __name__ == '__main__':
