@@ -13,11 +13,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
+author_name = "Test author"
+
 private_key_filename = "private.key"
 training_data_filename = "test_data_100.csv"
 
 blockchain_url = "http://itislabs.ru/nbc/chain"
 new_block_url = "http://itislabs.ru/nbc/newblock"
+new_author_url = "http://itislabs.ru/nbc/autor"
 
 
 def get_key_pair(private_key_filename):
@@ -160,6 +163,32 @@ def send_new_block(block):
 	return True
 
 
+def reveal_identity(public_key, private_key, name):
+	signature = sign_bytes(name.encode("utf-8"), private_key)
+
+	author = {
+		"autor": name,
+		"sign": bytes.hex(signature),
+		"publickey": bytes.hex(
+			public_key.public_bytes(
+				serialization.Encoding.DER,
+				serialization.PublicFormat.SubjectPublicKeyInfo))
+	}
+
+	headers = {"Content-Type": "application/json; charset=UTF-8"}
+	response = requests.post(new_author_url, headers = headers, data = to_json(author))
+	if not response.ok:
+		print(f"Status code {response.status_code}: {response.text}")
+		return False
+
+	result = json.loads(response.text)
+	if result["status"] != 0:
+		print(f"Error: {response.text}")
+		return False
+
+	return True
+
+
 def to_str_rounded(num):
 	return "{:.12f}".format(num).rstrip('0').rstrip('.')
 
@@ -182,6 +211,14 @@ def main():
 		return
 
 	print(f"Block with hash {new_block_hash} has been added")
+
+	identity_revealed = reveal_identity(public_key, private_key, author_name)
+	if identity_revealed:
+		public_key_hex = bytes.hex(
+			public_key.public_bytes(
+				serialization.Encoding.DER,
+				serialization.PublicFormat.SubjectPublicKeyInfo))
+		print(f"Author with public key {public_key_hex} has been revealed with name \"{author_name}\"")
 
 
 if __name__ == '__main__':
