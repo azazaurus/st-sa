@@ -7,7 +7,6 @@ import java.net.*;
 import java.nio.charset.*;
 import java.nio.file.*;
 import java.security.*;
-import java.security.spec.*;
 import java.util.*;
 
 public class Application {
@@ -20,15 +19,17 @@ public class Application {
 
 		var authorName = configuration.getProperty("author.name");
 
-		var keyFactory = KeyFactory.getInstance(keyAlgorithm);
+		var generator = KeyPairGenerator.getInstance(keyAlgorithm);
+		generator.initialize(1024);
+		var pair = generator.generateKeyPair();
 
 		var privateKeyFileName = Path.of(configuration.getProperty("keys.private.filename"));
-		var pemPrivateKey = Files.readAllBytes(privateKeyFileName);
-		var privateKey = keyFactory.generatePrivate(new PKCS8EncodedKeySpec(pemPrivateKey));
+		var privateKey = pair.getPrivate();
+		Files.write(privateKeyFileName, privateKey.getEncoded(), StandardOpenOption.CREATE);
 
 		var publicKeyFileName = Path.of(configuration.getProperty("keys.public.filename"));
-		var pemPublicKey = Files.readAllBytes(publicKeyFileName);
-		var publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(pemPublicKey));
+		var publicKey = pair.getPublic();
+		Files.write(publicKeyFileName, publicKey.getEncoded(), StandardOpenOption.CREATE);
 
 		var signature = Signature.getInstance(signAlgorithm);
 		signature.initSign(privateKey);

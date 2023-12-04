@@ -6,9 +6,8 @@ import urllib
 import numpy as np
 import pandas as pd
 import requests
-from cryptography.hazmat.backends import default_backend as crypto_default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric import padding
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
@@ -22,36 +21,12 @@ new_block_url = "http://itislabs.ru/nbc/newblock"
 
 
 def get_key_pair(public_key_filename, private_key_filename):
-	new_key = True
-	try:
-		with open(private_key_filename, "rb") as private_key_file:
-			encoded_private_key = private_key_file.read()
-			private_key = serialization.load_der_private_key(encoded_private_key, password = None)
-		new_key = False
-	except:
-		private_key = generate_key_pair()
-
-	public_key = private_key.public_key()
-
-	if new_key:
-		with open(public_key_filename, "wb") as public_key_file:
-			encoded_public_key = public_key.public_bytes(
-				serialization.Encoding.DER,
-				serialization.PublicFormat.SubjectPublicKeyInfo)
-			public_key_file.write(encoded_public_key)
-		with open(private_key_filename, "wb") as private_key_file:
-			encoded_private_key = private_key.private_bytes(
-				serialization.Encoding.DER,
-				serialization.PrivateFormat.PKCS8,
-				serialization.NoEncryption())
-			private_key_file.write(encoded_private_key)
-		print("Generated new private key")
-
-	return public_key, private_key
-
-
-def generate_key_pair():
-	return rsa.generate_private_key(65537, 1024, backend = crypto_default_backend())
+	with open(private_key_filename, "rb") as private_key_file:
+		encoded_private_key = private_key_file.read()
+		private_key = serialization.load_der_private_key(encoded_private_key, password = None)
+	with open(public_key_filename, "rb") as public_key_file:
+		encoded_public_key = public_key_file.read()
+	return encoded_public_key, private_key
 
 
 def train_model(df):
@@ -100,13 +75,11 @@ def sign_string(string, private_key):
 def sign_bytes(bytes_, private_key):
 	return private_key.sign(
 		bytes_,
-		padding.PSS(
-			mgf = padding.MGF1(hashes.SHA256()),
-			salt_length = padding.PSS.MAX_LENGTH),
+		padding.PKCS1v15(),
 		hashes.SHA256())
 
 
-def create_block(weights, error, public_key, private_key, previous_block_hash):
+def create_block(weights, error, encoded_public_key, private_key, previous_block_hash):
 	block_data = {
 		"w11": to_str_rounded(weights[0][0][0]),
 		"w12": to_str_rounded(weights[0][0][1]),
@@ -122,10 +95,7 @@ def create_block(weights, error, public_key, private_key, previous_block_hash):
 		"w2": to_str_rounded(weights[2][1][0]),
 		"w3": to_str_rounded(weights[2][2][0]),
 		"e": to_str_rounded(error),
-		"publickey": bytes.hex(
-			public_key.public_bytes(
-				serialization.Encoding.PEM,
-				serialization.PublicFormat.SubjectPublicKeyInfo))
+		"publickey": bytes.hex(encoded_public_key)
 	}
 	block_data_str = to_json(block_data)
 	block_signature = sign_string(block_data_str, private_key)
@@ -177,14 +147,14 @@ def to_json(data):
 
 
 def main():
-	public_key, private_key = get_key_pair(public_key_filename, private_key_filename)
+	encoded_public_key, private_key = get_key_pair(public_key_filename, private_key_filename)
 
 	df = pd.read_csv(training_data_filename, delimiter = ';', header = None)
 	weights, error = train_model(df)
 
 	previous_block = get_previous_block()
 	previous_block_hash = calculate_block_hash(previous_block)
-	new_block, new_block_hash = create_block(weights, error, public_key, private_key, previous_block_hash)
+	new_block, new_block_hash = create_block(weights, error, encoded_public_key, private_key, previous_block_hash)
 	new_block_added = send_new_block(new_block)
 	if not new_block_added:
 		return
