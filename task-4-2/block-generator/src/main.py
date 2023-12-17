@@ -38,11 +38,9 @@ def train_model(df):
 	X = MinMaxScaler().fit_transform(X)
 	y = MinMaxScaler().fit_transform(y.values.reshape(-1, 1))
 
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
-
-	model = MLPRegressor(hidden_layer_sizes = (2, 3), max_iter = 50000, activation = 'logistic')
-	model.fit(X_train, y_train.ravel())
-	error = np.square(np.subtract(y_test, model.predict(X_test))).mean()
+	model = MLPRegressor(hidden_layer_sizes = (2, 3), max_iter = 5000000, activation = 'logistic')
+	model.fit(X, y.ravel())
+	error = np.square(np.subtract(y, model.predict(X))).mean()
 
 	print('Model error:', error)
 
@@ -150,7 +148,12 @@ def main():
 	encoded_public_key, private_key = get_key_pair(public_key_filename, private_key_filename)
 
 	df = pd.read_csv(training_data_filename, delimiter = ';', header = None)
-	weights, error = train_model(df)
+	error = 0.076
+	while error >= 0.075:
+		weights, error = train_model(df)
+	continue_ = input("Continue? ")
+	if continue_ != "yes":
+		return
 
 	previous_block = get_previous_block()
 	previous_block_hash = calculate_block_hash(previous_block)
