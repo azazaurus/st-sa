@@ -7,7 +7,9 @@ import java.io.*;
 import java.nio.file.*;
 import java.time.*;
 import java.time.format.*;
+import java.time.temporal.*;
 import java.util.*;
+import java.util.stream.*;
 import java.util.zip.*;
 
 public class Application {
@@ -68,6 +70,65 @@ public class Application {
 
 	private static List<TimestampSeriesAggregator> initializeTimestampAggregators() {
 		var aggregators = new ArrayList<TimestampSeriesAggregator>();
+
+		var perHourAggregatorIntervals = DateTimeIntervalGenerator
+			.sequentialIntervals(
+				baseDateTimeInterval.startDateTime,
+				Duration.ofDays(3),
+				baseDateTimeInterval.endDateTime)
+			.collect(Collectors.toList());
+		for (var interval : perHourAggregatorIntervals)
+			aggregators.add(new TimestampPerHourSeriesAggregator(interval));
+
+		aggregators.add(new TimestampPerDaySeriesAggregator(baseDateTimeInterval));
+		aggregators.add(new TimestampPerMonthSeriesAggregator());
+
+		var withMonthBeforeAndMonthAfterInterval = new DateTimeInterval(
+			baseDateTimeInterval.startDateTime.minusMonths(1),
+			baseDateTimeInterval.endDateTime.plusMonths(1));
+		aggregators.add(new TimestampPerWeekSeriesAggregator(withMonthBeforeAndMonthAfterInterval));
+
+		var firstMondayDateTime = withMonthBeforeAndMonthAfterInterval.startDateTime.plusDays(
+			(ChronoUnit.WEEKS.getDuration().toDays()
+					- withMonthBeforeAndMonthAfterInterval.startDateTime.getDayOfWeek().getValue()
+					+ DayOfWeek.MONDAY.getValue())
+				% ChronoUnit.WEEKS.getDuration().toDays());
+		var perMondayAggregatorIntervals = DateTimeIntervalGenerator
+			.periodicalIntervals(
+				firstMondayDateTime,
+				ChronoUnit.DAYS.getDuration(),
+				ChronoUnit.WEEKS.getDuration(),
+				withMonthBeforeAndMonthAfterInterval.endDateTime)
+			.toArray(DateTimeInterval[]::new);
+		aggregators.add(
+			new TimestampPerDaySeriesAggregator(
+				"Per Mondays from "
+					+ withMonthBeforeAndMonthAfterInterval.startDateTime.format(DateTimeFormats.monthFormat)
+					+ " to "
+					+ withMonthBeforeAndMonthAfterInterval.endDateTime.format(DateTimeFormats.monthFormat)
+					+ " exclusive",
+				perMondayAggregatorIntervals));
+
+		var firstSundayDateTime = withMonthBeforeAndMonthAfterInterval.startDateTime.plusDays(
+			(ChronoUnit.WEEKS.getDuration().toDays()
+					- withMonthBeforeAndMonthAfterInterval.startDateTime.getDayOfWeek().getValue()
+					+ DayOfWeek.SUNDAY.getValue())
+				% ChronoUnit.WEEKS.getDuration().toDays());
+		var perSundayAggregatorIntervals = DateTimeIntervalGenerator
+			.periodicalIntervals(
+				firstSundayDateTime,
+				ChronoUnit.DAYS.getDuration(),
+				ChronoUnit.WEEKS.getDuration(),
+				withMonthBeforeAndMonthAfterInterval.endDateTime)
+			.toArray(DateTimeInterval[]::new);
+		aggregators.add(
+			new TimestampPerDaySeriesAggregator(
+				"Per Sundays from "
+					+ withMonthBeforeAndMonthAfterInterval.startDateTime.format(DateTimeFormats.monthFormat)
+					+ " to "
+					+ withMonthBeforeAndMonthAfterInterval.endDateTime.format(DateTimeFormats.monthFormat)
+					+ " exclusive",
+				perSundayAggregatorIntervals));
 
 		return aggregators;
 	}
