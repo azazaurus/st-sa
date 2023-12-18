@@ -27,7 +27,7 @@ public class TimestampPerMonthSeriesAggregator extends BaseTimestampSeriesAggreg
 
 	@Override
 	protected DateTimeInterval getPeriod(LocalDateTime timestamp) {
-		var periodStartDate = LocalDateTime.of(timestamp.getYear(), timestamp.getMonth(), 1, 0, 0);
+		LocalDateTime periodStartDate = LocalDateTime.of(timestamp.getYear(), timestamp.getMonth(), 1, 0, 0);
 		return new DateTimeInterval(periodStartDate, periodStartDate.plusMonths(1));
 	}
 

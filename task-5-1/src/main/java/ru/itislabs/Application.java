@@ -25,22 +25,22 @@ public class Application {
 	private static final Duration progressReportFrequency = Duration.ofSeconds(5);
 
 	public static void main(String[] args) throws IOException {
-		var timestampAggregators = initializeTimestampAggregators();
+		List<TimestampSeriesAggregator> timestampAggregators = initializeTimestampAggregators();
 
 		long lineNumber;
-		try (var timestampReader = openTimestampsFile(timestampsFileName)) {
-			var lastProgressReportTime = System.nanoTime();
-			var previousTimestamp = minDateTime;
+		try (BufferedReader timestampReader = openTimestampsFile(timestampsFileName)) {
+			long lastProgressReportTime = System.nanoTime();
+			LocalDateTime previousTimestamp = minDateTime;
 			for (lineNumber = 1; true; ++lineNumber) {
-				var timestampLine = timestampReader.readLine();
+				String timestampLine = timestampReader.readLine();
 				if (timestampLine == null) // EOF
 					break;
 
-				var timestampParseResult = tryParseTimestamp(timestampLine, lineNumber);
+				Optional<LocalDateTime> timestampParseResult = tryParseTimestamp(timestampLine, lineNumber);
 				if (timestampParseResult.isEmpty())
 					continue;
 
-				var timestamp = timestampParseResult.get();
+				LocalDateTime timestamp = timestampParseResult.get();
 				if (timestamp.isBefore(previousTimestamp)) {
 					System.err.println(
 						formatNotOrderedTimestampErrorMessage(previousTimestamp, timestamp, lineNumber));
@@ -48,7 +48,7 @@ public class Application {
 				}
 				previousTimestamp = timestamp;
 
-				for (var aggregator : timestampAggregators)
+				for (TimestampSeriesAggregator aggregator : timestampAggregators)
 					aggregator.addTimestamp(timestamp);
 
 				if (System.nanoTime() - lastProgressReportTime > progressReportFrequency.toNanos()) {
@@ -60,7 +60,7 @@ public class Application {
 
 		System.out.println(formatTimestampProcessingReport(lineNumber - 1));
 
-		for (var aggregator : timestampAggregators) {
+		for (TimestampSeriesAggregator aggregator : timestampAggregators) {
 			System.out.println();
 			System.out.println(aggregator.getDisplayName());
 			System.out.println("Sample average: " + aggregator.getSampleAverage(requiredAggregationPeriod));
@@ -69,31 +69,31 @@ public class Application {
 	}
 
 	private static List<TimestampSeriesAggregator> initializeTimestampAggregators() {
-		var aggregators = new ArrayList<TimestampSeriesAggregator>();
+		ArrayList<TimestampSeriesAggregator> aggregators = new ArrayList<TimestampSeriesAggregator>();
 
-		var perHourAggregatorIntervals = DateTimeIntervalGenerator
+		List<DateTimeInterval> perHourAggregatorIntervals = DateTimeIntervalGenerator
 			.sequentialIntervals(
 				baseDateTimeInterval.startDateTime,
 				Duration.ofDays(3),
 				baseDateTimeInterval.endDateTime)
 			.collect(Collectors.toList());
-		for (var interval : perHourAggregatorIntervals)
+		for (DateTimeInterval interval : perHourAggregatorIntervals)
 			aggregators.add(new TimestampPerHourSeriesAggregator(interval));
 
 		aggregators.add(new TimestampPerDaySeriesAggregator(baseDateTimeInterval));
 		aggregators.add(new TimestampPerMonthSeriesAggregator());
 
-		var withMonthBeforeAndMonthAfterInterval = new DateTimeInterval(
+		DateTimeInterval withMonthBeforeAndMonthAfterInterval = new DateTimeInterval(
 			baseDateTimeInterval.startDateTime.minusMonths(1),
 			baseDateTimeInterval.endDateTime.plusMonths(1));
 		aggregators.add(new TimestampPerWeekSeriesAggregator(withMonthBeforeAndMonthAfterInterval));
 
-		var firstMondayDateTime = withMonthBeforeAndMonthAfterInterval.startDateTime.plusDays(
+		LocalDateTime firstMondayDateTime = withMonthBeforeAndMonthAfterInterval.startDateTime.plusDays(
 			(ChronoUnit.WEEKS.getDuration().toDays()
 					- withMonthBeforeAndMonthAfterInterval.startDateTime.getDayOfWeek().getValue()
 					+ DayOfWeek.MONDAY.getValue())
 				% ChronoUnit.WEEKS.getDuration().toDays());
-		var perMondayAggregatorIntervals = DateTimeIntervalGenerator
+		DateTimeInterval[] perMondayAggregatorIntervals = DateTimeIntervalGenerator
 			.periodicalIntervals(
 				firstMondayDateTime,
 				ChronoUnit.DAYS.getDuration(),
@@ -109,12 +109,12 @@ public class Application {
 					+ " exclusive",
 				perMondayAggregatorIntervals));
 
-		var firstSundayDateTime = withMonthBeforeAndMonthAfterInterval.startDateTime.plusDays(
+		LocalDateTime firstSundayDateTime = withMonthBeforeAndMonthAfterInterval.startDateTime.plusDays(
 			(ChronoUnit.WEEKS.getDuration().toDays()
 					- withMonthBeforeAndMonthAfterInterval.startDateTime.getDayOfWeek().getValue()
 					+ DayOfWeek.SUNDAY.getValue())
 				% ChronoUnit.WEEKS.getDuration().toDays());
-		var perSundayAggregatorIntervals = DateTimeIntervalGenerator
+		DateTimeInterval[] perSundayAggregatorIntervals = DateTimeIntervalGenerator
 			.periodicalIntervals(
 				firstSundayDateTime,
 				ChronoUnit.DAYS.getDuration(),
@@ -134,7 +134,7 @@ public class Application {
 	}
 
 	private static BufferedReader openTimestampsFile(String timestampsFileName) throws IOException {
-		var zipStream = new ZipInputStream(
+		ZipInputStream zipStream = new ZipInputStream(
 			Files.newInputStream(Path.of(timestampsFileName), StandardOpenOption.READ));
 		zipStream.getNextEntry();
 		return new BufferedReader(new InputStreamReader(zipStream));

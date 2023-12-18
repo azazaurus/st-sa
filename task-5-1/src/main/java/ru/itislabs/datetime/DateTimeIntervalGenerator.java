@@ -19,7 +19,7 @@ public final class DateTimeIntervalGenerator {
 			LocalDateTime startDateTime,
 			Duration intervalDuration,
 			LocalDateTime lastDateTime) {
-		var intervalCount = Duration.between(startDateTime, lastDateTime).toNanos()
+		long intervalCount = Duration.between(startDateTime, lastDateTime).toNanos()
 			/ intervalDuration.toNanos();
 		return sequentialIntervals(startDateTime, intervalDuration).limit(intervalCount);
 	}
@@ -45,7 +45,7 @@ public final class DateTimeIntervalGenerator {
 					+ intervalDuration
 					+ ")");
 
-		var intervalCount = Duration
+		long intervalCount = Duration
 				.between(startDateTime, lastDateTime.plus(period.minus(intervalDuration)))
 				.toNanos()
 			/ period.toNanos();
@@ -71,7 +71,7 @@ public final class DateTimeIntervalGenerator {
 		@Override
 		public DateTimeInterval get() {
 			if (currentInterval != null) {
-				var newStartDateTime = currentInterval.startDateTime.plus(period);
+				LocalDateTime newStartDateTime = currentInterval.startDateTime.plus(period);
 				currentInterval = new DateTimeInterval(
 					newStartDateTime,
 					newStartDateTime.plus(intervalDuration));

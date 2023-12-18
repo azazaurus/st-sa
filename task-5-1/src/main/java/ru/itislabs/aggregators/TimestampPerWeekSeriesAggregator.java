@@ -27,7 +27,7 @@ public class TimestampPerWeekSeriesAggregator extends BaseTimestampSeriesAggrega
 
 	@Override
 	protected DateTimeInterval getPeriod(LocalDateTime timestamp) {
-		var periodStartDate = timestamp
+		LocalDateTime periodStartDate = timestamp
 			.truncatedTo(ChronoUnit.DAYS)
 			.minusDays(timestamp.getDayOfWeek().getValue() - 1);
 		return new DateTimeInterval(periodStartDate, periodStartDate.plusDays(ChronoUnit.WEEKS.getDuration().toDays()));

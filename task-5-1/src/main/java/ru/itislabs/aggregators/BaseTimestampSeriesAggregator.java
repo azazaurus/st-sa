@@ -34,7 +34,7 @@ public abstract class BaseTimestampSeriesAggregator implements TimestampSeriesAg
 
 	@Override
 	public double getSampleDispersion() {
-		var correctedPeriodsCount = periodsCount - 1;
+		long correctedPeriodsCount = periodsCount - 1;
 		return (double)timestampCountSquaresSum / correctedPeriodsCount
 			- (double)(timestampCountsSum * timestampCountsSum) / (correctedPeriodsCount * correctedPeriodsCount);
 	}
@@ -46,7 +46,7 @@ public abstract class BaseTimestampSeriesAggregator implements TimestampSeriesAg
 
 	@Override
 	public double getSampleDispersion(Duration aggregationPeriod) {
-		var periodConversionInverseCoefficient = getPeriodConversionInverseCoefficient(aggregationPeriod);
+		double periodConversionInverseCoefficient = getPeriodConversionInverseCoefficient(aggregationPeriod);
 		return getSampleDispersion() / (periodConversionInverseCoefficient * periodConversionInverseCoefficient);
 	}
 
@@ -85,10 +85,10 @@ public abstract class BaseTimestampSeriesAggregator implements TimestampSeriesAg
 	}
 
 	protected DateTimeInterval getPeriod(LocalDateTime timestamp) {
-		var zoneOffset = ZoneOffset.UTC;
-		var aggregationPeriodSeconds = getAggregationPeriod().toSeconds();
-		var timestampEpochSeconds = timestamp.toEpochSecond(zoneOffset);
-		var periodStartDateEpochSeconds = timestampEpochSeconds - timestampEpochSeconds % aggregationPeriodSeconds;
+		ZoneOffset zoneOffset = ZoneOffset.UTC;
+		long aggregationPeriodSeconds = getAggregationPeriod().toSeconds();
+		long timestampEpochSeconds = timestamp.toEpochSecond(zoneOffset);
+		long periodStartDateEpochSeconds = timestampEpochSeconds - timestampEpochSeconds % aggregationPeriodSeconds;
 		return new DateTimeInterval(
 			LocalDateTime.ofEpochSecond(
 				periodStartDateEpochSeconds,
@@ -101,7 +101,7 @@ public abstract class BaseTimestampSeriesAggregator implements TimestampSeriesAg
 	}
 
 	private static boolean isNotInAny(LocalDateTime timestamp, DateTimeInterval[] intervals) {
-		for (var interval : intervals)
+		for (DateTimeInterval interval : intervals)
 			if (interval.includes(timestamp))
 				return false;
 
