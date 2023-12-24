@@ -2,6 +2,7 @@ package ru.itislabs;
 
 import ru.itislabs.aggregators.*;
 import ru.itislabs.datetime.*;
+import ru.itislabs.queueingnetworks.*;
 
 import java.io.*;
 import java.nio.file.*;
@@ -23,6 +24,8 @@ public class Application {
 		LocalDateTime.of(2023, Month.APRIL, 1, 0, 0),
 		LocalDateTime.of(2023, Month.MAY, 1, 0, 0));
 	private static final Duration progressReportFrequency = Duration.ofSeconds(5);
+
+	private static final BufferedReader userInputReader = new BufferedReader(new InputStreamReader(System.in));
 
 	public static void main(String[] args) throws IOException {
 		List<TimestampSeriesAggregator> timestampAggregators = initializeTimestampAggregators();
@@ -60,12 +63,59 @@ public class Application {
 
 		System.out.println(formatTimestampProcessingReport(lineNumber - 1));
 
+		if (timestampAggregators.isEmpty()) {
+			System.out.println("No aggregation periods are configured");
+			return;
+		}
+
+		Optional<TimestampSeriesAggregator> aggregatorWithMinDispersion = Optional.empty();
+		Optional<Double> averageWithMinDispersion = Optional.empty();
+		Optional<Double> minDispersion = Optional.empty();
 		for (TimestampSeriesAggregator aggregator : timestampAggregators) {
+			double average = aggregator.getSampleAverage(requiredAggregationPeriod);
+			double dispersion = aggregator.getSampleDispersion(requiredAggregationPeriod);
+			if (minDispersion.isEmpty() || dispersion < minDispersion.get()) {
+				aggregatorWithMinDispersion = Optional.of(aggregator);
+				averageWithMinDispersion = Optional.of(average);
+				minDispersion = Optional.of(dispersion);
+			}
+
 			System.out.println();
 			System.out.println(aggregator.getDisplayName());
-			System.out.println("Sample average: " + aggregator.getSampleAverage(requiredAggregationPeriod));
-			System.out.println("Sample dispersion: " + aggregator.getSampleDispersion(requiredAggregationPeriod));
+			System.out.println("Sample average: " + average);
+			System.out.println("Sample dispersion: " + dispersion);
 		}
+
+		System.out.println();
+		System.out.println(
+			"Period with minimal sample dispersion: " + aggregatorWithMinDispersion.get().getDisplayName());
+		System.out.println("Sample average: " + averageWithMinDispersion.get());
+		System.out.println("Sample dispersion: " + minDispersion.get());
+
+		System.out.println();
+		QueueingNetworkUserInputCharacteristics queueingNetworkUserInputCharacteristics
+			= promptQueueingNetworkCharacteristics();
+		QueueingNetworkInputCharacteristics queueingNetworkInputCharacteristics
+			= new QueueingNetworkInputCharacteristics(
+				queueingNetworkUserInputCharacteristics.n,
+				queueingNetworkUserInputCharacteristics.mu,
+				averageWithMinDispersion.get(),
+				// The main time unit used is hour
+				queueingNetworkUserInputCharacteristics.tauSeconds / ChronoUnit.HOURS.getDuration().toSeconds());
+		QueueingNetworkCharacteristics queueingNetworkCharacteristics
+			= QueueingNetworkCalculator.calculateCharacteristics(
+				queueingNetworkInputCharacteristics);
+
+		Duration aggregationPeriod = aggregatorWithMinDispersion.get().getAggregationPeriod();
+		System.out.println(
+			"Average time when all servers are free: "
+				+ DurationFormatter.format(fraction(aggregationPeriod, queueingNetworkCharacteristics.p0))
+				+ " per "
+				+ DurationFormatter.format(aggregationPeriod));
+		System.out.println(
+			"Average time in queue in seconds: "
+				+ queueingNetworkCharacteristics.w0 * ChronoUnit.HOURS.getDuration().toSeconds());
+		System.out.println("Fraction of refused requests: " + queueingNetworkCharacteristics.pRefuse);
 	}
 
 	private static List<TimestampSeriesAggregator> initializeTimestampAggregators() {
@@ -166,5 +216,28 @@ public class Application {
 			+ " is before the previous "
 			+ previousTimestamp.format(DateTimeFormats.timestampFormat)
 			+ ", skipping it";
+	}
+
+	private static QueueingNetworkUserInputCharacteristics promptQueueingNetworkCharacteristics() {
+		String nString = prompt("Enter n (count of servers): ");
+		String muString = prompt("Enter mu in requests per hour (service rate): ");
+		String tauString = prompt("Enter tau in seconds (maximum time in queue): ");
+		return new QueueingNetworkUserInputCharacteristics(
+			Integer.parseInt(nString),
+			Double.parseDouble(muString),
+			Double.parseDouble(tauString));
+	}
+
+	private static String prompt(String prompt) {
+		System.out.print(prompt);
+		try {
+			return userInputReader.readLine();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static Duration fraction(Duration duration, double fraction) {
+		return Duration.ofNanos((long)(duration.toNanos() * fraction));
 	}
 }
