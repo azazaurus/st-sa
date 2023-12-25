@@ -29,14 +29,17 @@ public abstract class BaseTimestampSeriesAggregator implements TimestampSeriesAg
 
 	@Override
 	public double getSampleAverage() {
-		return (double)timestampCountsSum / periodsCount;
+		double countsSum = timestampCountsSum + currentPeriodCounter;
+		return countsSum / periodsCount;
 	}
 
 	@Override
 	public double getSampleDispersion() {
+		double countsSum = timestampCountsSum + currentPeriodCounter;
+		double countSquaresSum = timestampCountSquaresSum + currentPeriodCounter * currentPeriodCounter;
 		long correctedPeriodsCount = periodsCount - 1;
-		return (double)timestampCountSquaresSum / correctedPeriodsCount
-			- (double)(timestampCountsSum * timestampCountsSum) / (correctedPeriodsCount * correctedPeriodsCount);
+		return countSquaresSum / correctedPeriodsCount
+			- (countsSum * countsSum) / (correctedPeriodsCount * periodsCount);
 	}
 
 	@Override
